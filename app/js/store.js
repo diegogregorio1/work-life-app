@@ -43,7 +43,14 @@ export async function load() {
 export function save() {
   clearTimeout(saveTimer);
   setStatus('保存中…');
-  saveTimer = setTimeout(doSave, 300);
+  saveTimer = setTimeout(() => doSave(), 300);
+}
+
+// 手动保存：立即写入，返回是否成功
+export async function saveNow() {
+  clearTimeout(saveTimer);
+  setStatus('保存中…');
+  return doSave();
 }
 
 async function doSave() {
@@ -54,10 +61,15 @@ async function doSave() {
       body: JSON.stringify(state),
     });
     const j = await res.json();
-    if (j.ok) setStatus('已保存', 'ok');
-    else setStatus('保存失败：' + (j.error || '未知错误'), 'error');
+    if (j.ok) {
+      setStatus('已保存', 'ok');
+      return true;
+    }
+    setStatus('保存失败：' + (j.error || '未知错误'), 'error');
+    return false;
   } catch (e) {
     setStatus('保存失败，请确认服务在运行', 'error');
+    return false;
   }
 }
 

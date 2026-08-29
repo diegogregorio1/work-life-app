@@ -38,6 +38,10 @@ async function init() {
   dateEl.textContent = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 星期${'日一二三四五六'[now.getDay()]}`;
 
   store.setStatusEl(document.getElementById('save-status'));
+  document.getElementById('save-btn').addEventListener('click', async () => {
+    const ok = await store.saveNow();
+    ui.toast(ok ? '已保存到本地文件' : '保存失败', ok ? 'ok' : 'error');
+  });
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
   const state = await store.load();
