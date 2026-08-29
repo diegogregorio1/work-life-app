@@ -45,6 +45,8 @@ export function render(container, ctx) {
         ]),
       ]));
       card.append(ui.el('div', { class: 'kv mt' }, [
+        ui.el('a', { class: 'btn btn-ghost btn-sm', href: '#/dev/' + p.id, text: '进入 ›' }),
+        ui.el('button', { class: 'btn btn-primary btn-sm', text: '+ 添加任务', onclick: () => quickAddTask(p) }),
         ui.iconBtn('✏️', '编辑', () => editProject(p)),
         ui.iconBtn('🗑️', '删除', async () => {
           if (await ui.confirmBox(`删除项目「${p.name}」？项目下任务和日志会一并删除。`)) {
@@ -78,6 +80,26 @@ export function render(container, ctx) {
     });
   }
 
+  function quickAddTask(project) {
+    ui.formModal({
+      title: `添加任务（${project.name}）`,
+      fields: [
+        { key: 'text', label: '任务内容', required: true, placeholder: '要做什么？' },
+        { key: 'status', label: '状态', type: 'select', options: dc.TASK_STATUSES },
+        {
+          key: 'priority', label: '优先级', type: 'select',
+          options: [{ value: 'normal', label: '普通' }, { value: 'high', label: '重要' }],
+        },
+      ],
+      values: { status: 'todo', priority: 'normal' },
+      onSubmit: (v) => {
+        dc.addProjectTask(state, project.id, { text: v.text.trim(), status: v.status, priority: v.priority });
+        store.save();
+        ui.toast(`已添加任务到「${project.name}」`, 'ok');
+        redraw();
+      },
+    });
+  }
   // ---------- 项目详情 ----------
   function renderDetail(p) {
     container.append(ui.el('div', { class: 'toolbar' }, [
@@ -110,7 +132,7 @@ export function render(container, ctx) {
       ui.el('h3', { class: 'section-title', text: '任务' }),
       ui.el('button', { class: 'btn btn-primary btn-sm', text: '+ 添加任务', onclick: () => editTask(null) }),
     ]));
-    if (tasks.length === 0) container.append(ui.emptyState('还没有任务'));
+    if (tasks.length === 0) container.append(ui.emptyState('还没有任务，点右上角「+ 添加任务」'));
     else {
       container.append(ui.el('div', { class: 'card mb' }, tasks.map((t) => ui.el('div', { class: 'row' }, [
         ui.el('input', {

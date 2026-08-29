@@ -273,6 +273,14 @@ export function statusLabel(statuses, key) {
   return s ? s.label : key;
 }
 
+export function addProjectTask(state, projectId, task = {}) {
+  const p = state.dev.projects.find((x) => x.id === projectId);
+  if (!p) return null;
+  if (!Array.isArray(p.tasks)) p.tasks = [];
+  const t = { id: uid(), text: '', status: 'todo', priority: 'normal', ...task };
+  p.tasks.push(t);
+  return t;
+}
 export function projectTaskStats(project) {
   const tasks = Array.isArray(project.tasks) ? project.tasks : [];
   const done = tasks.filter((t) => t.status === 'done').length;
