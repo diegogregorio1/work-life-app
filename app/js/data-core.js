@@ -238,6 +238,22 @@ export function contentStatusLabel(key) {
   return s ? s.label : key;
 }
 
+export function buildStatsChartData(state) {
+  return state.selfmedia.publishStats
+    .map((s) => {
+      const c = state.selfmedia.contents.find((x) => x.id === s.contentId);
+      return {
+        id: s.id,
+        title: c ? c.title : '（已删除内容）',
+        date: s.publishDate || '',
+        views: Number(s.views) || 0,
+        likes: Number(s.likes) || 0,
+        comments: Number(s.comments) || 0,
+      };
+    })
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+}
+
 // ---------- 开发工作 ----------
 
 export const PROJECT_STATUSES = [

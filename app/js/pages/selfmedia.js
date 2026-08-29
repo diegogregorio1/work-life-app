@@ -2,6 +2,7 @@
 import * as dc from '../data-core.js';
 import * as store from '../store.js';
 import * as ui from '../ui.js';
+import { statsChartSVG, chartLegendHTML } from '../chart.js';
 
 const TABS = [
   { key: 'contents', label: '内容创作' },
@@ -235,6 +236,16 @@ export function render(container) {
       ui.el('button', { class: 'btn btn-primary', text: '+ 添加记录', onclick: editStat }),
     ]);
     container.append(toolbar);
+
+    const chartData = dc.buildStatsChartData(state);
+    if (chartData.length > 0) {
+      const wrap = ui.el('div', { class: 'chart-wrap card mb' });
+      wrap.append(ui.el('h3', { class: 'section-title', text: '发布数据趋势' }));
+      wrap.append(ui.el('div', { class: 'chart-legend', html: chartLegendHTML() }));
+      wrap.append(ui.el('div', { html: statsChartSVG(chartData) }));
+      container.append(wrap);
+    }
+
     if (sm().publishStats.length === 0) {
       container.append(ui.emptyState('发布后在这里记录阅读/点赞/评论数据'));
       return;
