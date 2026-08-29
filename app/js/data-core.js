@@ -46,13 +46,15 @@ export function todayTimeStr() {
 
 // ---------- 默认结构与校验 ----------
 
+export const DEFAULT_HOME_MODULES = ['selfmedia', 'dev', 'consult', 'fitness', 'diet', 'gaming'];
+
 export function defaultData() {
   return {
     version: 1,
     settings: {
       theme: 'light',
       weekStart: 1,
-      homeModules: ['selfmedia', 'dev', 'consult', 'fitness', 'diet', 'gaming'],
+      homeModules: [...DEFAULT_HOME_MODULES],
     },
     memos: [],
     plan: {},
@@ -70,6 +72,13 @@ export function ensureData(data) {
   if (!data || typeof data !== 'object') return def;
   const out = { ...def, ...data };
   out.settings = { ...def.settings, ...(data.settings || {}) };
+  // 归一化首页模块：空/非法时回退到默认列表，保证首页摘要永不空白
+  {
+    const hm = Array.isArray(out.settings.homeModules)
+      ? out.settings.homeModules.filter((x) => DEFAULT_HOME_MODULES.includes(x))
+      : [];
+    out.settings.homeModules = hm.length > 0 ? hm : [...DEFAULT_HOME_MODULES];
+  }
   out.selfmedia = { ...def.selfmedia, ...(data.selfmedia || {}) };
   out.dev = { ...def.dev, ...(data.dev || {}) };
   out.consult = { ...def.consult, ...(data.consult || {}) };

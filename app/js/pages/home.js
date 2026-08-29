@@ -33,6 +33,7 @@ export function summaryOf(id, s) {
 
 export function buildHomeSummaries(state, date) {
   const allowed = (state.settings.homeModules || []).filter(Boolean);
+  const list = allowed.length > 0 ? allowed : dc.DEFAULT_HOME_MODULES;
   const defs = [
     { id: 'selfmedia', title: '自媒体', href: '#/selfmedia', s: dc.selfmediaSummary(state, date) },
     { id: 'dev', title: '开发工作', href: '#/dev', s: dc.devSummary(state) },
@@ -41,7 +42,7 @@ export function buildHomeSummaries(state, date) {
     { id: 'diet', title: '饮食计划', href: '#/diet', s: dc.dietSummary(state, date) },
     { id: 'gaming', title: '游戏娱乐', href: '#/gaming', s: dc.gamingSummary(state, date) },
   ];
-  return defs.filter((d) => allowed.includes(d.id)).map((d) => ({ id: d.id, title: d.title, href: d.href, ...summaryOf(d.id, d.s) }));
+  return defs.filter((d) => list.includes(d.id)).map((d) => ({ id: d.id, title: d.title, href: d.href, ...summaryOf(d.id, d.s) }));
 }
 
 export function render(container) {

@@ -28,10 +28,15 @@ export async function load() {
       state = ensureData(j.data);
       if (j.recovered) setStatus('已从备份恢复', 'warn');
       else setStatus('已加载', 'ok');
-    } else {
+    } else if (j.ok && !j.data && j.fileExists === false) {
+      // 全新安装：确认没有数据文件时才创建默认数据
       state = defaultData();
       setStatus('新数据', 'ok');
       save();
+    } else {
+      // 数据文件存在但读取失败：绝不自动覆盖，保留默认并警示
+      state = defaultData();
+      setStatus('数据文件异常，未自动覆盖', 'error');
     }
   } catch (e) {
     state = defaultData();

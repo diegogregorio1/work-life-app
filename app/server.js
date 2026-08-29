@@ -63,6 +63,7 @@ export function startServer(options = {}) {
 
   function loadData() {
     let recovered = false;
+    const fileExists = fs.existsSync(dataFile);
     let raw = null;
     try {
       raw = fs.readFileSync(dataFile, 'utf8');
@@ -75,12 +76,12 @@ export function startServer(options = {}) {
         const bak = fs.readFileSync(backupFile, 'utf8');
         JSON.parse(bak);
         fs.writeFileSync(dataFile, bak, 'utf8');
-        return { data: JSON.parse(bak), recovered: true };
+        return { data: JSON.parse(bak), recovered: true, fileExists: true };
       } catch {
-        return { data: null, recovered: false };
+        return { data: null, recovered: false, fileExists };
       }
     }
-    return { data: JSON.parse(raw), recovered: false };
+    return { data: JSON.parse(raw), recovered: false, fileExists: true };
   }
 
   function sendJson(res, status, obj) {
@@ -98,8 +99,8 @@ export function startServer(options = {}) {
 
     try {
       if (req.method === 'GET' && pathname === '/api/data') {
-        const { data, recovered } = loadData();
-        sendJson(res, 200, { ok: true, data, recovered });
+        const { data, recovered, fileExists } = loadData();
+        sendJson(res, 200, { ok: true, data, recovered, fileExists });
         return;
       }
       if (req.method === 'POST' && pathname === '/api/data') {

@@ -91,8 +91,16 @@ export function render(container) {
     for (const m of HOME_MODULES) {
       const cb = ui.el('input', { type: 'checkbox', class: 'checkbox-lg', checked: homeMods.has(m.id) });
       cb.onchange = () => {
-        if (cb.checked) homeMods.add(m.id);
-        else homeMods.delete(m.id);
+        if (cb.checked) {
+          homeMods.add(m.id);
+        } else {
+          if (homeMods.size <= 1) {
+            ui.toast('首页摘要至少保留一个模块', 'warn');
+            cb.checked = true;
+            return;
+          }
+          homeMods.delete(m.id);
+        }
         state.settings.homeModules = HOME_MODULES.map((x) => x.id).filter((id) => homeMods.has(id));
         store.save();
       };
