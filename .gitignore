@@ -1,0 +1,8 @@
+# 本地个人数据（数据文件不进版本库，请用「数据与设置」页导出备份）
+app/data/
+
+# 系统与编辑器杂项
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
