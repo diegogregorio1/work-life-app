@@ -7,6 +7,7 @@ const TABS = [
   { key: 'today', label: '今日饮食' },
   { key: 'templates', label: '饮食模板' },
   { key: 'review', label: '记录回顾' },
+  { key: 'calendar', label: '日历' },
 ];
 
 const MEALS = [
@@ -20,6 +21,9 @@ export function render(container) {
   const state = store.getState();
   let tab = 'today';
   let date = dc.todayStr();
+  let calYear = null;
+  let calMonth = null;
+  let calSelected = null;
 
   function redraw() {
     container.innerHTML = '';
@@ -30,6 +34,7 @@ export function render(container) {
     }))));
     if (tab === 'today') renderToday();
     else if (tab === 'templates') renderTemplates();
+    else if (tab === 'calendar') renderCalendar();
     else renderReview();
   }
 
@@ -180,5 +185,64 @@ export function render(container) {
     })));
   }
 
+  // ---------- 日历 ----------
+  function renderCalendar() {
+    const now = new Date();
+    if (calMonth === null) {
+      calYear = now.getFullYear();
+      calMonth = now.getMonth() + 1;
+      calSelected = dc.todayStr();
+    }
+    const monthMap = dc.dietMonthMap(state, calYear, calMonth);
+    const title = `${calYear}年${calMonth}月`;
+    const nav = (dm) => {
+      calMonth += dm;
+      if (calMonth < 1) { calMonth = 12; calYear--; }
+      if (calMonth > 12) { calMonth = 1; calYear++; }
+      redraw();
+    };
+    container.append(ui.el('div', { class: 'calendar-toolbar' }, [
+      ui.el('button', { class: 'btn btn-ghost btn-sm', text: '‹ 上月', onclick: () => nav(-1) }),
+      ui.el('span', { class: 'calendar-title', text: title }),
+      ui.el('button', { class: 'btn btn-ghost btn-sm', text: '下月 ›', onclick: () => nav(1) }),
+      ui.el('button', { class: 'btn btn-ghost btn-sm', text: '回到本月', onclick: () => {
+        calYear = now.getFullYear();
+        calMonth = now.getMonth() + 1;
+        calSelected = dc.todayStr();
+        redraw();
+      } }),
+    ]));
+    container.append(ui.monthCalendar({
+      year: calYear,
+      month: calMonth,
+      weekStart: state.settings.weekStart,
+      selected: calSelected,
+      cellRender: (dateStr) => {
+        const d = monthMap[dateStr];
+        if (!d) return null;
+        return ui.el('div', {}, [
+          ui.el('span', { class: 'calendar-chip warn', text: `${d.mealsRecorded}/4 餐` }),
+          d.water > 0 ? ui.el('span', { class: 'calendar-chip success', text: `${d.water} 杯水` }) : null,
+        ]);
+      },
+      onSelect: (dateStr) => { calSelected = dateStr; redraw(); },
+    }));
+
+    const detail = ui.el('div', { class: 'card mt' });
+    detail.append(ui.el('h3', { class: 'section-title', text: calSelected + ' 的饮食' }));
+    const day = dc.dietDay(state, calSelected);
+    for (const m of MEALS) {
+      const v = String(day[m.key] || '').trim();
+      detail.append(ui.el('div', { class: 'row' }, [
+        ui.el('span', { class: 'badge badge-neutral', text: m.label }),
+        ui.el('span', { class: 'row-text' + (v ? '' : ' text-muted'), text: v || '未记录' }),
+      ]));
+    }
+    detail.append(ui.el('div', { class: 'row' }, [
+      ui.el('span', { class: 'badge badge-neutral', text: '喝水' }),
+      ui.el('span', { class: 'row-text', text: (day.water || 0) + ' 杯' }),
+    ]));
+    container.append(detail);
+  }
   redraw();
 }

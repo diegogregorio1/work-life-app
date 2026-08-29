@@ -8,12 +8,16 @@ const TABS = [
   { key: 'templates', label: '训练模板' },
   { key: 'history', label: '训练历史' },
   { key: 'body', label: '身体数据' },
+  { key: 'calendar', label: '日历' },
 ];
 
 export function render(container) {
   const state = store.getState();
   let tab = 'today';
   let selectedTemplateId = null;
+  let calYear = null;
+  let calMonth = null;
+  let calSelected = null;
 
   function f() { return state.fitness; }
   function templateName(id) {
@@ -31,6 +35,7 @@ export function render(container) {
     if (tab === 'today') renderToday();
     else if (tab === 'templates') renderTemplates();
     else if (tab === 'history') renderHistory();
+    else if (tab === 'calendar') renderCalendar();
     else renderBody();
   }
 
@@ -291,5 +296,60 @@ export function render(container) {
     });
   }
 
+  // ---------- 日历 ----------
+  function renderCalendar() {
+    const now = new Date();
+    if (calMonth === null) {
+      calYear = now.getFullYear();
+      calMonth = now.getMonth() + 1;
+      calSelected = dc.todayStr();
+    }
+    const monthMap = dc.fitnessMonthMap(state, calYear, calMonth);
+    const title = `${calYear}年${calMonth}月`;
+    const nav = (dy, dm) => {
+      calMonth += dm;
+      if (calMonth < 1) { calMonth = 12; calYear--; }
+      if (calMonth > 12) { calMonth = 1; calYear++; }
+      void dy;
+      redraw();
+    };
+    container.append(ui.el('div', { class: 'calendar-toolbar' }, [
+      ui.el('button', { class: 'btn btn-ghost btn-sm', text: '‹ 上月', onclick: () => nav(0, -1) }),
+      ui.el('span', { class: 'calendar-title', text: title }),
+      ui.el('button', { class: 'btn btn-ghost btn-sm', text: '下月 ›', onclick: () => nav(0, 1) }),
+      ui.el('button', { class: 'btn btn-ghost btn-sm', text: '回到本月', onclick: () => {
+        calYear = now.getFullYear();
+        calMonth = now.getMonth() + 1;
+        calSelected = dc.todayStr();
+        redraw();
+      } }),
+    ]));
+    container.append(ui.monthCalendar({
+      year: calYear,
+      month: calMonth,
+      weekStart: state.settings.weekStart,
+      selected: calSelected,
+      cellRender: (dateStr) => {
+        const ws = monthMap[dateStr];
+        if (!ws) return null;
+        return ui.el('div', {}, ws.map((w) => ui.el('span', { class: 'calendar-chip success', text: w.templateName })));
+      },
+      onSelect: (dateStr) => { calSelected = dateStr; redraw(); },
+    }));
+
+    const detail = ui.el('div', { class: 'card mt' });
+    detail.append(ui.el('h3', { class: 'section-title', text: calSelected + ' 的训练' }));
+    const ws = monthMap[calSelected] || [];
+    if (ws.length === 0) detail.append(ui.emptyState('这一天没有训练记录'));
+    else {
+      for (const w of ws) {
+        detail.append(ui.el('div', { class: 'row' }, [
+          ui.el('span', { class: 'row-text', text: w.templateName }),
+          ui.el('span', { class: 'text-muted', text: w.exercises.map((e) => `${e.name} ${e.sets}组×${e.reps}次${e.weight ? ' ' + e.weight + 'kg' : ''}`).join('；') }),
+        ]));
+      }
+    }
+    container.append(detail);
+  }
   redraw();
 }

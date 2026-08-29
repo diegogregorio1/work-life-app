@@ -1,5 +1,5 @@
 // 通用 UI 组件：元素构建、弹窗、确认、toast、日期条、空状态等
-import { addDays, parseDateStr, todayStr } from './data-core.js';
+import { addDays, parseDateStr, todayStr, monthDays } from './data-core.js';
 
 export function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({
@@ -134,6 +134,25 @@ export function badge(text, cls = 'badge-neutral') {
   return el('span', { class: 'badge ' + cls, text });
 }
 
+export function monthCalendar({ year, month, weekStart = 1, cellRender, onSelect, selected }) {
+  const grid = el('div', { class: 'calendar' });
+  for (let i = 0; i < 7; i++) {
+    grid.append(el('div', { class: 'calendar-wd', text: '日一二三四五六'[(weekStart + i) % 7] }));
+  }
+  const total = monthDays(year, month).length;
+  const lead = (new Date(year, month - 1, 1).getDay() - weekStart + 7) % 7;
+  for (let i = 0; i < lead; i++) grid.append(el('div', { class: 'calendar-cell empty' }));
+  for (let d = 1; d <= total; d++) {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const cell = el('div', { class: 'calendar-cell' + (selected === dateStr ? ' selected' : '') });
+    cell.append(el('div', { class: 'calendar-daynum', text: String(d) }));
+    const content = cellRender ? cellRender(dateStr) : null;
+    if (content) cell.append(content);
+    cell.addEventListener('click', () => onSelect && onSelect(dateStr));
+    grid.append(cell);
+  }
+  return grid;
+}
 export function progressBar(percent) {
   const p = Math.max(0, Math.min(100, percent));
   return el('div', { class: 'progress' }, [el('i', { style: 'width:' + p + '%' })]);

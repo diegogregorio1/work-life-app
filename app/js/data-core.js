@@ -365,6 +365,54 @@ export function sessionMinutesOn(state, date) {
   return sessionsOn(state, date).reduce((sum, s) => sum + (Number(s.minutes) || 0), 0);
 }
 
+export function monthDays(year, month) {
+  const days = [];
+  const last = new Date(year, month, 0).getDate();
+  for (let d = 1; d <= last; d++) {
+    days.push(`${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+  }
+  return days;
+}
+
+export function templateNameById(state, id) {
+  const t = state.fitness.templates.find((x) => x.id === id);
+  return t ? t.name : '（已删除模板）';
+}
+
+export function fitnessMonthMap(state, year, month) {
+  const map = {};
+  for (const date of monthDays(year, month)) {
+    const ws = state.fitness.workouts.filter((w) => w.date === date);
+    if (ws.length) {
+      map[date] = ws.map((w) => ({
+        id: w.id,
+        templateName: templateNameById(state, w.templateId),
+        exercises: (w.exercises || []).map((e) => ({
+          name: e.name,
+          sets: e.sets,
+          reps: e.reps,
+          weight: e.weight,
+          done: e.done,
+        })),
+      }));
+    }
+  }
+  return map;
+}
+
+export function dietMonthMap(state, year, month) {
+  const map = {};
+  const meals = ['breakfast', 'lunch', 'dinner', 'snack'];
+  for (const date of monthDays(year, month)) {
+    const day = state.diet.days[date];
+    if (!day) continue;
+    const recorded = meals.filter((k) => String(day[k] || '').trim() !== '').length;
+    const water = Number(day.water) || 0;
+    if (recorded > 0 || water > 0) map[date] = { mealsRecorded: recorded, water };
+  }
+  return map;
+}
+
 // ---------- 首页摘要 ----------
 
 export function todayPlanSummary(state, date) {
