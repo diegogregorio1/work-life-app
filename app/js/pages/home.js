@@ -6,26 +6,34 @@ import * as ui from '../ui.js';
 export function summaryOf(id, s) {
   switch (id) {
     case 'selfmedia':
-      return {
-        num: s.toPublishToday,
-        text: s.toPublishToday ? '篇今天待发' : s.publishedTotal ? `已发布 ${s.publishedTotal} 篇` : '还没有内容',
-      };
+      if (s.toPublishToday > 0) return { num: s.toPublishToday, text: '篇今天待发' };
+      if (s.publishedTotal > 0) return { num: s.total, text: `共 ${s.total} 篇 · 已发布 ${s.publishedTotal}` };
+      if (s.total > 0) return { num: s.total, text: '篇进行中' };
+      return { num: 0, text: '还没有内容' };
     case 'dev':
-      return { num: s.active, text: s.active ? '个项目进行中' : s.projects ? `${s.projects} 个项目` : '暂无项目' };
+      if (s.active > 0) return { num: s.active, text: '个项目进行中' };
+      if (s.projects > 0) return { num: s.projects, text: '个项目' };
+      return { num: 0, text: '暂无项目' };
     case 'consult':
-      return {
-        num: s.appointmentsToday || s.unpaid,
-        text: s.appointmentsToday ? `今天 ${s.appointmentsToday} 个预约` : s.unpaid ? `有 ${s.unpaid} 笔未收款` : '今天无预约',
-      };
+      if (s.appointmentsToday > 0) return { num: s.appointmentsToday, text: `今天 ${s.appointmentsToday} 个预约` };
+      if (s.unpaid > 0) return { num: s.unpaid, text: `有 ${s.unpaid} 笔未收款` };
+      if (s.clients > 0) return { num: s.clients, text: '位客户' };
+      return { num: 0, text: '暂无客户' };
     case 'fitness':
-      return {
-        num: s.weekCount,
-        text: `本周已练 ${s.weekCount}/${s.weeklyGoal}` + (s.todayWorkout ? ' · 今天已练' : ''),
-      };
+      if (s.todayWorkout || s.weekCount > 0) {
+        return { num: s.weekCount, text: `本周已练 ${s.weekCount}/${s.weeklyGoal}` + (s.todayWorkout ? ' · 今天已练' : '') };
+      }
+      if (s.total > 0) return { num: s.total, text: '次训练记录' };
+      return { num: 0, text: `本周已练 0/${s.weeklyGoal}` };
     case 'diet':
-      return { num: s.mealsRecorded, text: s.mealsRecorded ? '餐已记录（共 4 餐）' : '今天还没记录饮食' };
+      if (s.mealsRecorded > 0) return { num: s.mealsRecorded, text: '餐已记录（共 4 餐）' };
+      if (s.recordedDays > 0) return { num: s.recordedDays, text: '天有饮食记录' };
+      return { num: 0, text: '今天还没记录饮食' };
     case 'gaming':
-      return { num: s.minutesToday, text: s.minutesToday ? '分钟（今天）' : '今天还没玩' };
+      if (s.minutesToday > 0) return { num: s.minutesToday, text: '分钟（今天）' };
+      if (s.playing > 0) return { num: s.playing, text: '款在玩' };
+      if (s.totalSessions > 0) return { num: s.totalSessions, text: '条游戏时间记录' };
+      return { num: 0, text: '今天还没玩' };
     default:
       return { num: 0, text: '' };
   }

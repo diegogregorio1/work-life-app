@@ -67,6 +67,45 @@ export function defaultData() {
   };
 }
 
+// ---------- 旧数据枚举迁移（中文值 -> 英文键，幂等） ----------
+
+const SLOT_MAP = { 上午: 'morning', 下午: 'afternoon', 晚上: 'evening' };
+const CONTENT_STATUS_MAP = { 构思中: 'drafting', 撰写中: 'writing', 待发布: 'scheduled', 已发布: 'published' };
+const PROJECT_STATUS_MAP = { 进行中: 'active', 暂停: 'paused', 已完成: 'done' };
+const TASK_STATUS_MAP = { 待办: 'todo', 进行中: 'doing', 已完成: 'done' };
+const PRIORITY_MAP = { 普通: 'normal', 重要: 'high' };
+const INCOME_STATUS_MAP = { 未收: 'unpaid', 已收: 'paid' };
+const GAME_STATUS_MAP = { 想玩: 'want', 在玩: 'playing', 通关: 'done', 弃坑: 'dropped' };
+const WISH_PRIORITY_MAP = { 普通: 'normal', 高: 'high' };
+
+function normEnum(v, map) {
+  return typeof v === 'string' && map[v] ? map[v] : v;
+}
+
+export function normalizeEnums(data) {
+  if (!data || typeof data !== 'object') return data;
+  const plan = data.plan || {};
+  for (const date of Object.keys(plan)) {
+    for (const it of plan[date] || []) if (it) it.slot = normEnum(it.slot, SLOT_MAP);
+  }
+  const sm = data.selfmedia || {};
+  for (const c of sm.contents || []) if (c) c.status = normEnum(c.status, CONTENT_STATUS_MAP);
+  const dev = data.dev || {};
+  for (const p of dev.projects || []) {
+    if (!p) continue;
+    p.status = normEnum(p.status, PROJECT_STATUS_MAP);
+    for (const t of p.tasks || []) if (t) {
+      t.status = normEnum(t.status, TASK_STATUS_MAP);
+      t.priority = normEnum(t.priority, PRIORITY_MAP);
+    }
+  }
+  const cons = data.consult || {};
+  for (const i of cons.incomes || []) if (i) i.status = normEnum(i.status, INCOME_STATUS_MAP);
+  const g = data.gaming || {};
+  for (const l of g.library || []) if (l) l.status = normEnum(l.status, GAME_STATUS_MAP);
+  for (const w of g.wishlist || []) if (w) w.priority = normEnum(w.priority, WISH_PRIORITY_MAP);
+  return data;
+}
 export function ensureData(data) {
   const def = defaultData();
   if (!data || typeof data !== 'object') return def;
@@ -104,6 +143,7 @@ export function ensureData(data) {
   out.gaming.library = Array.isArray(out.gaming.library) ? out.gaming.library : [];
   out.gaming.sessions = Array.isArray(out.gaming.sessions) ? out.gaming.sessions : [];
   out.gaming.wishlist = Array.isArray(out.gaming.wishlist) ? out.gaming.wishlist : [];
+  normalizeEnums(out);
   return out;
 }
 
@@ -434,7 +474,8 @@ export function selfmediaSummary(state, date) {
   const { contents, ideas, platforms } = state.selfmedia;
   const toPublishToday = contents.filter((c) => c.publishDate === date && c.status !== 'published').length;
   const publishedTotal = contents.filter((c) => c.status === 'published').length;
-  return { toPublishToday, publishedTotal, ideas: ideas.length, platforms: platforms.length };
+  const inProgress = contents.filter((c) => c.status !== 'published').length;
+  return { toPublishToday, publishedTotal, inProgress, total: contents.length, ideas: ideas.length, platforms: platforms.length };
 }
 
 export function devSummary(state) {
@@ -450,21 +491,21 @@ export function devSummary(state) {
 export function consultSummary(state, date) {
   const appointmentsToday = state.consult.appointments.filter((a) => a.date === date).length;
   const unpaid = state.consult.incomes.filter((i) => i.status === 'unpaid').length;
-  return { appointmentsToday, unpaid };
+  return { appointmentsToday, unpaid, clients: state.consult.clients.length };
 }
 
 export function fitnessSummary(state, date) {
   const goal = Number(state.fitness.weeklyGoal) || 0;
   const weekCount = workoutsInWeek(state, date).length;
   const todayWorkout = state.fitness.workouts.some((w) => w.date === date);
-  return { weekCount, weeklyGoal: goal, todayWorkout, goalMet: goal > 0 && weekCount >= goal };
+  return { weekCount, weeklyGoal: goal, todayWorkout, goalMet: goal > 0 && weekCount >= goal, total: state.fitness.workouts.length };
 }
 
 export function dietSummary(state, date) {
   const day = state.diet.days[date];
   const meals = ['breakfast', 'lunch', 'dinner', 'snack'];
   const recorded = day ? meals.filter((k) => String(day[k] || '').trim() !== '').length : 0;
-  return { mealsRecorded: recorded, water: day ? Number(day.water) || 0 : 0, allMeals: recorded === 4 };
+  return { mealsRecorded: recorded, water: day ? Number(day.water) || 0 : 0, allMeals: recorded === 4, recordedDays: recordedDietDays(state).length };
 }
 
 export function gamingSummary(state, date) {
@@ -473,5 +514,5 @@ export function gamingSummary(state, date) {
     .reduce((sum, s) => sum + (Number(s.minutes) || 0), 0);
   const playing = state.gaming.library.filter((g) => g.status === 'playing').length;
   const wishlist = state.gaming.wishlist.filter((w) => !w.bought).length;
-  return { minutesToday, playing, wishlist };
+  return { minutesToday, playing, wishlist, totalSessions: state.gaming.sessions.length };
 }

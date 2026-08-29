@@ -78,7 +78,11 @@ export function startServer(options = {}) {
         fs.writeFileSync(dataFile, bak, 'utf8');
         return { data: JSON.parse(bak), recovered: true, fileExists: true };
       } catch {
-        return { data: null, recovered: false, fileExists };
+        if (!fs.existsSync(dataFile)) {
+          // 全新安装：创建占位文件，保证数据文件存在（内容由首次保存时补全）
+          writeJsonAtomic(dataFile, { version: 1 });
+        }
+        return { data: null, recovered: false, fileExists: fs.existsSync(dataFile) };
       }
     }
     return { data: JSON.parse(raw), recovered: false, fileExists: true };

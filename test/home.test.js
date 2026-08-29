@@ -11,13 +11,39 @@ const DATE = '2026-08-30';
 
 test('summaryOf 各模块摘要文案', () => {
   assert.deepEqual(summaryOf('selfmedia', { toPublishToday: 2, publishedTotal: 5 }), { num: 2, text: '篇今天待发' });
-  assert.deepEqual(summaryOf('selfmedia', { toPublishToday: 0, publishedTotal: 5 }), { num: 0, text: '已发布 5 篇' });
+  assert.deepEqual(summaryOf('selfmedia', { toPublishToday: 0, publishedTotal: 5, total: 5, inProgress: 0 }), { num: 5, text: '共 5 篇 · 已发布 5' });
   assert.deepEqual(summaryOf('dev', { active: 2, projects: 3 }), { num: 2, text: '个项目进行中' });
   assert.deepEqual(summaryOf('consult', { appointmentsToday: 1, unpaid: 3 }), { num: 1, text: '今天 1 个预约' });
   assert.deepEqual(summaryOf('consult', { appointmentsToday: 0, unpaid: 3 }), { num: 3, text: '有 3 笔未收款' });
   assert.deepEqual(summaryOf('fitness', { weekCount: 2, weeklyGoal: 3, todayWorkout: true }), { num: 2, text: '本周已练 2/3 · 今天已练' });
   assert.deepEqual(summaryOf('diet', { mealsRecorded: 2, water: 3 }), { num: 2, text: '餐已记录（共 4 餐）' });
   assert.deepEqual(summaryOf('gaming', { minutesToday: 90, playing: 1, wishlist: 2 }), { num: 90, text: '分钟（今天）' });
+  // 有数据但今天不紧迫时，应显示真实数据量而不是没数据
+  assert.deepEqual(summaryOf('selfmedia', { toPublishToday: 0, publishedTotal: 0, total: 2, inProgress: 2 }), { num: 2, text: '篇进行中' });
+  assert.deepEqual(summaryOf('consult', { appointmentsToday: 0, unpaid: 0, clients: 1 }), { num: 1, text: '位客户' });
+  assert.deepEqual(summaryOf('diet', { mealsRecorded: 0, recordedDays: 3 }), { num: 3, text: '天有饮食记录' });
+  assert.deepEqual(summaryOf('fitness', { weekCount: 0, weeklyGoal: 3, todayWorkout: false, total: 5 }), { num: 5, text: '次训练记录' });
+  assert.deepEqual(summaryOf('gaming', { minutesToday: 0, playing: 0, totalSessions: 4 }), { num: 4, text: '条游戏时间记录' });
+});
+
+test('首页摘要：有存量数据时不显示还没有内容', () => {
+  const s = dc.ensureData(null);
+  // 模拟用户实际数据：自媒体 2 篇进行中（非今天待发/已发布），咨询 1 位客户，饮食今天有记录
+  s.selfmedia.contents.push(
+    { id: 'c1', title: 'github简介', status: 'drafting', publishDate: '2026-08-31' },
+    { id: 'c2', title: '我的github', status: 'writing', publishDate: '2026-09-01' }
+  );
+  s.dev.projects.push({ id: 'p1', name: '个人网站', status: 'active', tasks: [] });
+  s.consult.clients.push({ id: 'k1', name: '王先生' });
+  dc.dietDay(s, '2026-08-30').breakfast = '鸡蛋';
+  const sums = buildHomeSummaries(s, '2026-08-30');
+  const sm = sums.find((x) => x.id === 'selfmedia');
+  assert.equal(sm.num, 2, '自媒体应显示 2 篇');
+  assert.ok(sm.text.includes('进行中'), '应显示进行中');
+  assert.equal(sums.find((x) => x.id === 'consult').num, 1, '咨询应显示 1 位客户');
+  assert.equal(sums.find((x) => x.id === 'dev').num, 1, '开发应显示 1 个项目进行中');
+  assert.equal(sums.find((x) => x.id === 'diet').num, 1, '饮食今天已记录 1 餐');
+  assert.ok(!sm.text.includes('还没有内容'), '不应再显示还没有内容');
 });
 
 test('buildHomeSummaries 按 settings.homeModules 过滤', () => {
